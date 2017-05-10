@@ -1,0 +1,1 @@
+Invoke-Expression "choco uninstall firefox --yes"

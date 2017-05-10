@@ -1,0 +1,5 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\MobileIron]
+"Registry Key from script"="Test value from script file..."
+

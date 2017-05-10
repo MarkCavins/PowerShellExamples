@@ -1,0 +1,9 @@
+Set-Location C:\Temp
+Invoke-Expression "curl.exe -O --insecure https://s3-us-west-2.amazonaws.com/bridges/hello.ps1"
+Invoke-Expression "curl.exe -O --insecure https://s3-us-west-2.amazonaws.com/bridges/Set-Wallpaper.ps1"
+Invoke-Expression "curl.exe -O --insecure https://s3-us-west-2.amazonaws.com/bridges/european_architecture-wallpaper-2400x1350.jpg"
+
+Set-Location "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp"
+Invoke-Expression "curl.exe -O --insecure https://s3-us-west-2.amazonaws.com/bridges/Set-Wallpaper.bat"
+
+Write-Output "Bridge output = C:\Temp\european_architecture-wallpaper-2400x1350.jpg"

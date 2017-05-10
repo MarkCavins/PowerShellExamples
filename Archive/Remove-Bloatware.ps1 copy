@@ -1,0 +1,68 @@
+<#
+Param (
+  #Script parameters go here
+)
+#>
+
+
+#---------------------------------------------------------[Initialisations]--------------------------------------------------------
+
+#Set Error Action to Silently Continue
+$ErrorActionPreference = 'SilentlyContinue'
+
+#Import Modules & Snap-ins
+
+#----------------------------------------------------------[Declarations]----------------------------------------------------------
+
+#Any Global Declarations go here
+$name = (Get-Item env:\Computername).Value
+$filepath = (Get-ChildItem env:\userprofile).value
+#### HTML Output Formatting #######
+
+$a = "<style>"
+$a = $a + "BODY{background-color:Lavender ;}"
+$a = $a + "TABLE{border-width: 1px;border-style: solid;border-color: black;border-collapse: collapse;}"
+$a = $a + "TH{border-width: 1px;padding: 0px;border-style: solid;border-color: black;background-color:thistle}"
+$a = $a + "TD{border-width: 1px;padding: 0px;border-style: solid;border-color: black;background-color:PaleGoldenrod}"
+$a = $a + "</style>"
+
+###############################################
+
+ConvertTo-Html -Head $a  -title "BloatWare Removal for $name" -Body "<h1> Computer Name : $name </h1>" >  "$filepath\$name.html" 
+Get-AppxPackage  | select name,publisher,version,installlocation | Sort-Object -Property Name | ConvertTo-Html -Body "<h2> Installed Apps </h2>" >> "$filepath\$name.html"
+
+#-----------------------------------------------------------[Functions]------------------------------------------------------------
+
+
+Function Remove-Apps {
+  Process {
+    Try {
+        $installed = Get-AppxPackage
+        ConvertTo-Html -Body "<h2>BloatWare to be Removed</h2>" >> "$filepath\$name.html"
+        foreach( $ins in $installed){
+            #remove AppPAckage
+            try {
+              $AppPackageFullName = Get-AppxPackage -Name $ins.Name | Select-Object -ExpandProperty PackageFullName
+              ConvertTo-Html -Body "<h4>Removing $AppPackageFullName</h4>" >> "$filepath\$name.html"
+              Remove-AppxPackage -Package $ins.PackageFullName -Verbose -ErrorAction Stop
+            }
+             catch [System.Exception] {
+               ConvertTo-Html -Body "<p>$_.Exception.Message</p> <br>"  >> "$filepath\$name.html"
+            }
+
+      
+        }
+    }
+    Catch {
+      ConvertTo-Html -Body "Error: $($_.Exception)" >> "$filepath\$name.html"
+      Continue
+    }
+  }
+}
+
+Remove-Apps
+
+## Invoke Expressons
+Get-AppxPackage  | select name,publisher,version,installlocation | ConvertTo-Html -Body "<h2> Remaining Apps </h2>" >> "$filepath\$name.html"
+
+Get-Content "$filepath\$name.html"

@@ -1,0 +1,1 @@
+Invoke-Expression "choco install curl --force --yes"

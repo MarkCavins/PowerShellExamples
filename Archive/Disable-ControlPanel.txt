@@ -1,0 +1,20 @@
+# Set up additional registry drives:
+New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS | Out-Null -ErrorAction Continue
+
+Function Disable-Control {
+    param ( [String] $SID = "")
+
+    process {
+        if ( Test-Path -Path HKU:\$($SID)\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer){
+            Set-ItemProperty -Path HKU:\$($SID)\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer -Name 'NoControlPanel' -Value '1' | Out-Null
+            set-ItemProperty -Path HKU:\$($SID)\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer -Name 'NoPinningToTaskbar'  -Value '1' | Out-Null
+        }
+        else{
+            New-Item -Path HKU:\$($SID)\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer
+            New-ItemProperty -Path HKU:\$($SID)\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer -Name 'NoControlPanel' -PropertyType DWORD -Value '1' | Out-Null
+            New-ItemProperty -Path HKU:\$($SID)\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer -Name 'NoPinningToTaskbar' -PropertyType DWORD -Value '1' | Out-Null
+        }
+    }
+}
+
+Get-localUser | where {$_.Enabled -eq $true} | ForEach-Object { Disable-Control -SID $_.SID.Value } }

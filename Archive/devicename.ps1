@@ -1,0 +1,1 @@
+Rename-Computer -NewName "MIB-123" -Restart

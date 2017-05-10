@@ -1,0 +1,1 @@
+Invoke-Expression "nircmd cdrom open d:"

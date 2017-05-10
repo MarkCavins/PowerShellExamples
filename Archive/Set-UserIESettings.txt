@@ -1,0 +1,175 @@
+param (
+	[String] $DeviceAction = " ",
+	[String] $PathToFile = "c:\temp\",
+	[String] $HomeURL = "google.com" ,
+	[String] $PopURL = "google.com"
+	)
+
+# Set up additional registry drives:
+
+New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS | Out-Null
+
+
+
+#Disable changing home page setting
+Function Disable-IEHome {
+	param ( [String] $SID,
+		[String] $URL = "google.com")
+	process {
+		if (Test-Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer'){
+			if(Test-Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Control Panel'){
+				Set-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Control Panel' -Name 'HomePage' -Value '1' | Out-Null
+
+				New-Item -Path 'HKCU:\Software\Policies\Microsoft\Internet Explorer\Main'
+				New-ItemProperty -Path 'HKCU:\Software\Policies\Microsoft\Internet Explorer\Main' -Name 'Start Page' -PropertyType String -Value $URL | Out-Null
+			}
+			else{
+				New-Item -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Control Panel'
+				New-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Control Panel' -Name 'HomePage' -PropertyType DWORD -Value '1' | Out-Null
+			
+				New-Item -Path 'HKCU:\Software\Policies\Microsoft\Internet Explorer\Main'
+				New-ItemProperty -Path 'HKCU:\Software\Policies\Microsoft\Internet Explorer\Main' -Name 'Start Page' -PropertyType String -Value $URL | Out-Null
+			}
+		}	
+		else{
+			New-Item -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer'
+			New-Item -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Control Panel'
+			New-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Control Panel' -Name 'HomePage' -PropertyType DWORD -Value '1' | Out-Null
+		
+			New-Item -Path 'HKCU:\Software\Policies\Microsoft\Internet Explorer\Main'			
+			New-ItemProperty -Path 'HKCU:\Software\Policies\Microsoft\Internet Explorer\Main' -Name 'Start Page' -PropertyType String -Value $URL | Out-Null
+		}
+	}
+}
+#Enable changing home page setting
+Function Enable-IEHome {
+	param ([String] $SID )
+	process {
+		Set-ItemProperty -Path 'HKU:\$(SID)\SOFTWARE\Policies\Microsoft\Internet Explorer\Control Panel' -Name 'HomePage' -Value '0'
+	}
+}
+#Add URLS to POPUP list
+Function Enable-AllowList {
+	param ([String] $SID,
+		[String $URL] )
+	process {
+		#Add sites for which pop-ups are allowed Local Machine
+		if (Test-Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer'){
+			if (Test-Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\New Windows'){
+				Set-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\New Windows' -Name ListBox_Support_Allow  -Value '1' | Out-Null
+			}
+			else {
+				New-Item -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\New Windows'
+				New-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\New Windows' -Name ListBox_Support_Allow -PropertyType DWORD -Value '1' | Out-Null
+			}
+
+			if (Test-Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\New Windows\Allow'){
+				New-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\New Windows\Allow' -Name $url -PropertyType String -Value $url | Out-Null 
+			}
+			else{
+				New-Item -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\New Windows\Allow'
+				New-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\New Windows\Allow' -Name $url -PropertyType String -Value $url | Out-Null 
+			}
+		}
+		else {
+			New-Item -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer'
+			New-Item -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\New Windows'
+			New-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\New Windows' -Name ListBox_Support_Allow -PropertyType DWORD -Value '1' | Out-Null
+			New-Item -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\New Windows\Allow'
+			New-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\New Windows\Allow' -Name $url -PropertyType String -Value $url | Out-Null 
+		}
+	}
+}
+#Remove sites for which pop-ups are allowed
+Function Remove-AllowList {
+	param ([String] $SID,
+		[String $URL] )
+	process {
+	Remove-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\New Windows\Allow' -Name $url
+	}
+}
+#Disable pop-ups not explicitly allowed
+function Unrestrict-PopupExcept{
+	param ([String] $SID )
+	process {
+		Set-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions' -Name RestrictPopupExceptionList -Value '0' | Out-Null
+	}
+}
+#Enable pop-ups not explicitly allowed
+function Restrict-PopupExcept {
+	param ([String] $SID )
+	process {
+		if (Test-Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer'){
+			If (Test-Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions'){
+				Set-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions' -Name RestrictPopupExceptionList -Value '1' | Out-Null		
+			}
+			else {
+				New-Item -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions'
+				New-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions' -Name RestrictPopupExceptionList -PropertyType DWORD -Value '1' | Out-Null
+			}
+		}
+		else{
+			New-Item -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer'
+			New-Item -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions'
+			New-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions' -Name RestrictPopupExceptionList -PropertyType DWORD -Value '1' | Out-Null
+		}
+	}
+}
+#Enable Save-as options
+Function Enable-SaveAS{
+	param ([String] $SID )
+
+	Process {
+		if (Test-Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer'){
+			If (Test-Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions'){
+				Set-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions' -Name NoBrowserSaveAs  -Value '0' | Out-Null
+				Set-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions' -Name NoSelectDownloadDir   -Value '0' | Out-Null					
+			}
+			else {
+				New-Item -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions'
+				New-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions' -Name NoBrowserSaveAs  -PropertyType DWORD -Value '0' | Out-Null
+				New-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions' -Name NoSelectDownloadDir -PropertyType DWORD -Value '0' | Out-Null			
+			}
+		}
+		else{
+			New-Item -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer'
+			New-Item -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions'
+			New-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions' -Name NoBrowserSaveAs  -PropertyType DWORD -Value '0' | Out-Null
+			New-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions' -Name NoSelectDownloadDir -PropertyType DWORD -Value '0' | Out-Null
+		}
+	}
+}
+#Disable Save-as options
+Function Enable-SaveAS{
+	param ([String] $SID )
+
+	Process {
+		if (Test-Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer'){
+			If (Test-Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions'){
+				Set-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions' -Name NoBrowserSaveAs  -Value '1' | Out-Null
+				Set-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions' -Name NoSelectDownloadDir   -Value '1' | Out-Null					
+			}
+			else {
+				New-Item -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions'
+				New-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions' -Name NoBrowserSaveAs  -PropertyType DWORD -Value '1' | Out-Null
+				New-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions' -Name NoSelectDownloadDir -PropertyType DWORD -Value '1' | Out-Null			
+			}
+		}
+		else{
+			New-Item -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer'
+			New-Item -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions'
+			New-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions' -Name NoBrowserSaveAs  -PropertyType DWORD -Value '1' | Out-Null
+			New-ItemProperty -Path 'HKU:\$(SID)\Software\Policies\Microsoft\Internet Explorer\Restrictions' -Name NoSelectDownloadDir -PropertyType DWORD -Value '1' | Out-Null
+		}
+	}
+}
+Switch ($DeviceAction){
+	DIEHome { Get-localUser | where {$_.Enabled -eq $true} | Disable-IEHome -SID $_.SID.Value -URL $HomeURL }
+	EIEHome { Get-localUser | where {$_.Enabled -eq $true} | Enable-IEHome -SID $_.SID.Value }
+	EPopUp { Get-localUser | where {$_.Enabled -eq $true} | Enable-AllowList -SID $_.SID.Value -URL $PathToFile }
+	RMPopup { Get-localUser | where {$_.Enabled -eq $true} | Enable-AllowList -SID $_.SID.Value -URL $PopURL }
+	Unrest { Get-localUser | where {$_.Enabled -eq $true} | Unrestrict-PopupExcept -SID $_.SID.Value -URL }
+	Restrict { Get-localUser | where {$_.Enabled -eq $true} | Restrict-PopupExcept -SID $_.SID.Value -URL }
+	ESave { Get-localUser | where {$_.Enabled -eq $true} | Enable-SaveAS -SID $_.SID.Value -URL }
+	DSave { Get-localUser | where {$_.Enabled -eq $true} | Disable-SaveAS -SID $_.SID.Value -URL }
+}
